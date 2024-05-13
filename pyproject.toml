@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "jobs project"
+version = "0.1.0"
+description = "Python application designed to automate data scraping from multiple job posting platforms."
+authors = ["Tiago Woinarski <tiagowoi@hotmail.com>"]
+license = "MIT License"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
