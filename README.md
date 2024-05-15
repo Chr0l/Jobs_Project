@@ -1,7 +1,7 @@
 <!-- [![Project Image](path_to_image)](link_to_higher_resolution_image) -->
 
 # Jobs Project
-[![Jobs Project v0.1.0][jobs_project-badge]][repo] [![Version 1.1.0 Badge][version-badge]][changelog] [![MIT License Badge][license-badge]][license]
+[![jobs_project-badge]][repo] [![version-badge]][changelog] [![license-badge]][license]
 
 ## Description
 Python application designed to automate data scraping from multiple job posting platforms. The project aims to analyze job listings to automatically assign relevant tags, store the data in a database for ongoing monitoring, and make the information available through interactive dashboards.
@@ -27,16 +27,10 @@ Python application designed to automate data scraping from multiple job posting 
 ## How to Contribute
 We welcome contributions from the community. To contribute, please check out the [CONTRIBUTING.md](CONTRIBUTING.md) guide for more details on how you can help improve the Jobs Project.
 
-## Changelog
-For all notable changes to this project, see the [Changelog](https://github.com/Chr0l/Jobs_Project/blob/main/CHANGELOG.md).
-
-## License
-Distributed under the MIT License. See [License](LICENSE) for more information.
-
 
 [jobs_project-badge]: https://img.shields.io/badge/Jobs%20Project-%23E05735
-[repo]: "https://github.com/Chr0l/Jobs_Project",
+[repo]: https://github.com/Chr0l/Jobs_Project
+[version-badge]: https://img.shields.io/badge/version-0.2.0-blue
 [changelog]: ./CHANGELOG.md
-[version-badge]: https://img.shields.io/badge/version-0.1.0-blue
-[license]: ./LICENSE
 [license-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[license]: ./LICENSE

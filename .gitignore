@@ -45,4 +45,4 @@ venv/
 logs/
 
 # Database files specific to this project
-*db.sqlite
+data/*
