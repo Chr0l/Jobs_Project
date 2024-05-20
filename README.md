@@ -18,7 +18,8 @@ Python application designed to automate data scraping from multiple job posting 
 
 ## Roadmap
 - [x] Initial project setup and environment configuration.
-- [ ] Development of support classes for enhanced scraping operations.
+- [x] Development of support classes for enhanced scraping operations.
+- [ ] Development of a poc file related to data scraping.
 - [ ] Implementation of data analysis tools and tagging system.
 - [ ] Creation of the database system for data storage and management.
 - [ ] Development of interactive dashboards for data visualization.
