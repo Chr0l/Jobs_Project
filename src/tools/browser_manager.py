@@ -13,7 +13,8 @@ from webdriver_manager.firefox import GeckoDriverManager as FirefoxDriverManager
 from webdriver_manager.microsoft import EdgeChromiumDriverManager as EdgeDriverManager      # noqa: F401
 from webdriver_manager.opera import OperaDriverManager                                      # noqa: F401
 
-from .logging_manager import LoggingManager
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "src")))
+from tools.logging_manager import LoggingManager
 
 # TODO add safari driver suporte
 
@@ -26,7 +27,6 @@ class BrowserManager:
         self.headless = headless
         self._driver = None
         self.options = None
-        self.pkl_path = "data/cookies.pkl"
         self.logger = LoggingManager(logger_name='BrowserManager').get_logger()
         self._create_webdriver()
 
@@ -101,20 +101,57 @@ class BrowserManager:
 
         return options
 
-    def save_cookies(self):
+    def save_cookies(self, user):
         """Saves the cookies to the pickle file."""
-        self.logger.info(f"Saving cookies to {self.pkl_path}")
-        os.makedirs(os.path.dirname(self.pkl_path), exist_ok=True)
-        with open(self.pkl_path, "wb") as file:
-            pickle.dump(self.driver.get_cookies(), file)
+        self.logger.info("Saving cookies to the database")
+        cookies = pickle.dumps(self.driver.get_cookies())
 
-    def inject_cookies(self):
-        """Injects the cookies from the pickle file."""
-        self.logger.info(f"Injecting cookies from {self.pkl_path}")
-        with open(self.pkl_path, "rb") as file:
-            cookies = pickle.load(file)
-        for cookie in cookies:
-            self.driver.add_cookie(cookie)
+        try:
+            from utils.orm_base import Account
+            from tools.database_manager import DatabaseManager
+
+            with DatabaseManager().session_scope() as session:
+                user = session.merge(user)
+
+                account = session.query(Account).filter_by(user_id=user.id).first()
+                if account:
+                    account.cookies = cookies
+                    session.commit()
+                    self.logger.info(f"Cookies saved for user ID: {user.id}")
+                else:
+                    self.logger.warning(f"No account found for user ID: {user.id}")
+        except Exception as e:
+            self.logger.error(f"Error saving cookies to the database: {e}")
+            raise
+
+    def inject_cookies(self, user):
+        """Injects the cookies from the database associated with the active user."""
+        self.logger.info("Injecting cookies from the database")
+
+        try:
+            from utils.orm_base import Account
+            from tools.database_manager import DatabaseManager
+
+            with DatabaseManager().session_scope() as session:
+                user = session.merge(user)
+
+                account = session.query(Account).filter_by(user_id=user.id).first()
+                if account and account.cookies:
+                    cookies = pickle.loads(account.cookies)
+
+                    for cookie in cookies:
+                        self.driver.add_cookie(cookie)
+
+                    self.logger.info(f"Cookies injected for user ID: {user.id}")
+                    return True
+                else:
+                    self.logger.warning(
+                        f"No cookies found in the database for user ID: {user.id}"
+                    )
+                    return False
+        except Exception as e:
+            self.logger.error(f"Error injecting cookies from the database: {e}")
+            return False
 
     def close(self):
         """Closes the webdriver instance."""

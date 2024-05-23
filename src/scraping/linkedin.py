@@ -2,8 +2,6 @@ import os
 import re
 import sys
 import time
-import uuid
-from dotenv import load_dotenv
 
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
@@ -13,11 +11,11 @@ from selenium.common.exceptions import (
     NoSuchElementException, TimeoutException, StaleElementReferenceException
 )
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-from src.tools.browser_manager import BrowserManager
-from src.tools.logging_manager import LoggingManager
-from src.tools.database_manager import DatabaseManager
-from src.utils.orm_base import JobsBaseInfo
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'src',)))
+from tools.browser_manager import BrowserManager
+from tools.logging_manager import LoggingManager
+from tools.database_manager import DatabaseManager
+from utils import orm_base
 
 scroll_script = """
     var div = document.querySelector('.jobs-search-results-list');
@@ -32,25 +30,40 @@ scroll_script = """
 """
 
 class Login:
+    def __init__(self, user_id):
+        self._get_user_data(user_id)
+        self.login()
+
     def login(self):
-        """
-        Handles the entire login process.
-        """
+        """Handles the entire login process."""
         self.logger.info("Starting login process")
         self.driver.get("https://www.linkedin.com/")
 
-        try:
-            self.browser_manager.inject_cookies()
+        if self.browser_manager.inject_cookies(self.user_data):
             self.driver.refresh()
+
             if not self.__is_login_required():
                 self.logger.info("Login not required, session is active.")
                 return
-        except FileNotFoundError:
-            self.logger.warning("Cookies file not found, proceeding with manual login")
 
         self.driver.get("https://www.linkedin.com/login")
         self.__fill_login_form()
         self.__handle_captcha()
+
+    def _get_user_data(self, user_id):
+        """Gets the user data from the database."""
+        try:
+            from utils.orm_base import User
+            self.user_data = self.db_manager.get_entries(
+                User,
+                {"id": user_id}
+            )[0]
+            if not self.user_data:
+                self.logger.error("No user found with the ID {user_id}")
+                raise ValueError("No user found with the ID {user_id}")
+        except Exception as e:
+            self.logger.error(f"Error getting user data: {e}")
+            raise
 
     def __is_login_required(self):
         """
@@ -58,7 +71,7 @@ class Login:
         """
         try:
             time.sleep(2)
-            self.driver.find_element(By.CSS_SELECTOR, ".global-nav__me-photo")
+            self.driver.find_elements(By.CSS_SELECTOR, ".global-nav__me-photo")
             self.logger.info("Already logged in")
             return False
         except NoSuchElementException:
@@ -71,50 +84,65 @@ class Login:
         """
         try:
             self.logger.info("Filling login form")
+
+            # Ajuste dos seletores para usar o atributo 'name'
             username_field = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.ID, "username"))
+                EC.presence_of_element_located((By.NAME, "session_key"))  # E-mail
             )
-            username_field.send_keys(os.getenv("EMAIL"))
             password_field = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.ID, "password"))
+                EC.presence_of_element_located((By.NAME, "session_password"))  # Senha
             )
-            password_field.send_keys(os.getenv("PASSWORD"))
-            password_field.send_keys(Keys.RETURN)
+
+            with self.db_manager.session_scope() as session:
+                user = session.merge(self.user_data)
+                decrypted_password = user.decrypt_password()
+
+                username_field.send_keys(user.email)
+                password_field.send_keys(decrypted_password)
+                password_field.send_keys(Keys.RETURN)
+
             self.logger.info("Login form submitted")
-        except (TimeoutException, NoSuchElementException):
-            self.logger.error("Failed to log in due to page issues.")
+
+        except TimeoutException:
+            self.logger.error("Timeout waiting for login form elements.")
+        except Exception as e:
+            self.logger.error(f"Failed to log in: {e}", exc_info=True)
 
     def __handle_captcha(self):
+        """Handles CAPTCHA if present."""
         #TODO create function to handle captchas
         try:
-            captcha_element = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.ID, "captcha-internal"))
+            WebDriverWait(self.driver, timeout=10).until(
+                lambda x: self.driver.execute_script("return document.readyState === 'complete'")
             )
-            if captcha_element:
+
+            captcha_elements = self.driver.find_elements(By.CLASS_NAME, "captcha-challenge")
+            if captcha_elements:
                 self.logger.warning("CAPTCHA detected, waiting for user to solve")
                 input("Please solve the CAPTCHA and press ENTER to continue.")
+            else:
+                self.logger.info("No CAPTCHA detected.")
         except TimeoutException:
-            self.logger.info("No CAPTCHA detected")
+            self.logger.warning("Timeout waiting for page to load completely.")
 
 class LinkedInCrawler(Login):
-    def __init__(self, browser="chrome", headless=False):
-        load_dotenv()
+    def __init__(self, user_id, browser="chrome", headless=False):
         self.logger = LoggingManager(logger_name='LinkedInCrawler').get_logger()
         self.browser_manager = BrowserManager(browser=browser, headless=headless)
         self.driver = self.browser_manager.driver
         self.db_manager = DatabaseManager()
-        self.db_manager.create_tables()
+
+        super().__init__(user_id)
+
         self.search_count = 0
+        self.user_wants_to_stop = False
 
     def __call__(self, location=None, keywords=None):
-        self.login()
         url = "https://www.linkedin.com/jobs/search/?"
         if keywords:
             url += f"keywords={keywords}&"
         if location:
             url += f"location={location}&"
-
-        self.user_wants_to_stop = False
 
         while True:
             self.search_count += 1
@@ -152,7 +180,7 @@ class LinkedInCrawler(Login):
             for index, card in enumerate(job_cards):
                 job_data = self._collect_card_data(index, card)
                 if job_data:
-                    if not self.url_exists(job_data['url']):
+                    if not self._url_exists(job_data['url']):
                         if self._insert_job_data(job_data):
                             self._close_job_card(card, index)
                     else:
@@ -172,13 +200,15 @@ class LinkedInCrawler(Login):
 
         try:
             title_element = card.find_element(By.XPATH, ".//a[contains(@class, 'job-card-list__title')]")
+            location, work_format = card.find_element(By.CLASS_NAME, "job-card-container__metadata-item").text.split("(")
 
             return {
                 'platform': 'LinkedIn',
-                'title': title_element.text,
+                'title': title_element.find_element(By.TAG_NAME, "strong").text,
                 'company': card.find_element(By.CLASS_NAME, "job-card-container__primary-description").text,
-                'location': card.find_element(By.CLASS_NAME, "job-card-container__metadata-item").text,
-                'url': title_element.get_attribute('href').split('eBP=')[0],
+                'location': location.strip(),
+                'work_format': work_format.rstrip(")"),
+                'url': title_element.get_attribute('href').split('?')[0],
             }
 
         except NoSuchElementException:
@@ -203,7 +233,6 @@ class LinkedInCrawler(Login):
                 self.logger.error(f"Search: {self.search_count} Page: {self.current_page_number} Card: {index+1}. Failed to close job card after retry: {e}", exc_info=True)
         except Exception as e:
             self.logger.error(f"Search: {self.search_count} Page: {self.current_page_number} Card: {index+1}. Failed to close job card: {e}", exc_info=True)
-
 
     def _navigate_to_next_page(self):
         """
@@ -234,17 +263,16 @@ class LinkedInCrawler(Login):
             self.logger.error(f"Failed to navigate to the next page: {e}", exc_info=True)
             return False
 
-
-    def url_exists(self, url):
+    def _url_exists(self, url):
         """Checks if the URL already exists in the database."""
         with self.db_manager.session_scope() as session:
-            exists = session.query(JobsBaseInfo).filter(JobsBaseInfo.url == url).first() is not None
+            exists = session.query(orm_base.JobsBaseInfo).filter(orm_base.JobsBaseInfo.url == url).first() is not None
         return exists
 
     def _insert_job_data(self, job_data):
         """Inserts job data into the database."""
         try:
-            self.db_manager.add_job(job_data)
+            self.db_manager.add_entry(orm_base.JobsBaseInfo(**job_data), orm_base.JobsBaseInfo)
             return True
         except Exception as e:
             self.logger.error(f"Failed to insert job data into the database: {e}")
@@ -253,18 +281,6 @@ class LinkedInCrawler(Login):
     def close(self):
         """Closes the webdriver and saves cookies."""
         self.logger.info("Saving cookies and closing browser")
-        self.browser_manager.save_cookies()
+        self.browser_manager.save_cookies(self.user_data)
         self.browser_manager.close()
-
-if __name__ == "__main__":
-    while True:
-        os.environ['SESSION_UID'] = uuid.uuid4().hex
-        try:
-            crawler = LinkedInCrawler(browser="chrome")
-            crawler(location="Brasil")
-        except Exception as e:
-            print(e)
-            continue
-        finally:
-            crawler.close()
 

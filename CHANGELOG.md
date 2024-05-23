@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2024-05-22
+
+### Added
+- `main.py`: Added the `main.py` file with the `EnvironmentManager` class to manage environment setup, including creation and validation of the `.env` file, secret key, and database configuration.
+- `src\utils\orm_base.py`: Added `User` and `Account` tables to store user and account information, with support for password encryption.
+
+### Changed
+- `src\tools\database_manager.py`: Modified to support multiple tables, not just the `JobsBaseInfo` table, allowing for generic CRUD operations.
+- `src\utils\orm_base.py`: Improved the `JobsBaseInfo` table structure and added methods for handling passwords and cookies.
+- `src\tools\browser_manager.py`: Changed cookie management to store cookies in the database instead of local files.
+- `src\scraping\linkedin.py`: Adjusted to correctly use user data and cookies stored in the database instead of local files or environment variables.
+- `README.md`: Changed to display supported platforms
+
+### Fixed
+- Corrected an issue in the collection of vacancy names that caused duplicate text.
+- Adjusted the code to separate location from work type in the collected vacancy information.
+
 ## [0.3.0] - 2024-05-20
 
 ### Added

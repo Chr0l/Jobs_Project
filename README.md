@@ -12,6 +12,14 @@ Python application designed to automate data scraping from multiple job posting 
 - **Database:** Stores job listing information for trend analysis and monitoring.
 - **Interactive Dashboards:** Provides interactive data visualization to facilitate access to and understanding of collected information.
 
+## Supported Platforms
+This project currently supports data scraping from the following job platforms:
+- **LinkedIn**
+- **Catho** (Planned)
+- **Indeed** (Planned)
+- **Glassdoor** (Planned)
+(Additional platforms will be added as the project develops.)
+
 ## Dependencies
 - **Python 3.12:** Programming language for all development.
 - **Poetry:** Dependency and package manager.
@@ -31,7 +39,7 @@ We welcome contributions from the community. To contribute, please check out the
 
 [jobs_project-badge]: https://img.shields.io/badge/Jobs%20Project-%23E05735
 [repo]: https://github.com/Chr0l/Jobs_Project
-[version-badge]: https://img.shields.io/badge/version-0.2.0-blue
+[version-badge]: https://img.shields.io/badge/version-0.3.1-blue
 [changelog]: ./CHANGELOG.md
 [license-badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [license]: ./LICENSE
