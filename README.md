@@ -39,7 +39,7 @@ We welcome contributions from the community. To contribute, please check out the
 
 [jobs_project-badge]: https://img.shields.io/badge/Jobs%20Project-%23E05735
 [repo]: https://github.com/Chr0l/Jobs_Project
-[version-badge]: https://img.shields.io/badge/version-0.3.1-blue
+[version-badge]: https://img.shields.io/badge/version-0.3.2-blue
 [changelog]: ./CHANGELOG.md
 [license-badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [license]: ./LICENSE

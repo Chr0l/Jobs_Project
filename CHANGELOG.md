@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2024-05-22
+
+### Fixed
+- **Improved Location and Work Format Handling in LinkedIn Scraper**: Fixed an issue in `src\scraping\linkedin.py` where an error was generated when the work format was not provided in the LinkedIn job listings.
+- **Page Navigation Fix**: Resolved an issue in `src\scraping\linkedin.py` where the action button of a card was mistakenly clicked instead of the next page button, causing an infinite loop on the same page.
+- **Reliable Action Button Detection**: Fixed an intermittent problem where the action button on job cards was not being located, as reported in `src\scraping\linkedin.py`.
+
 ## [0.3.1] - 2024-05-22
 
 ### Added
@@ -19,8 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `README.md`: Changed to display supported platforms
 
 ### Fixed
-- Corrected an issue in the collection of vacancy names that caused duplicate text.
-- Adjusted the code to separate location from work type in the collected vacancy information.
+- **Job name duplication issue**: Fixed an issue that resulted in job name text duplication during data collection. 
+- **Separation of location and job type**: We adjusted the data analysis logic in our extraction script to clearly separate location and job type information in the collected job data.
+
 
 ## [0.3.0] - 2024-05-20
 
@@ -31,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `src/tools/`: Updated all tools (`browser_manager.py`, `database_manager.py`, `logging_manager.py`) to use Loguru for logging and SQLAlchemy for database management.
 - Removed `src/utils/setup_database.py` (table creation now handled by `database_manager.py`).
+
 
 ## [0.2.0] - 2024-05-15
 
@@ -43,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Minor updates to `README.md` and `.gitignore`.
+
 
 ## [0.1.0] - 2024-05-13
 

@@ -137,7 +137,11 @@ class LinkedInCrawler(Login):
         self.search_count = 0
         self.user_wants_to_stop = False
 
-    def __call__(self, location=None, keywords=None):
+    def search_jobs(self, location=None, keywords=None):
+        print(self.search_count)
+        """
+        Searches for jobs on LinkedIn.
+        """
         url = "https://www.linkedin.com/jobs/search/?"
         if keywords:
             url += f"keywords={keywords}&"
@@ -194,20 +198,29 @@ class LinkedInCrawler(Login):
         """
         Collect data from a single job card.
         """
-        action_button = card.find_element(By.XPATH, ".//button//span[@class='artdeco-button__text']//*[name()='svg']//*[name()='use']")
+        self.driver.execute_script("arguments[0].scrollIntoView();", card)
+
+        action_button = card.find_element(By.XPATH, ".//button[contains(@class, 'job-card-container__action')]")
+        action_button = action_button.find_element(By.XPATH, ".//*[name()='use']")
         if action_button.get_attribute('href') != "#close-small":
             return None
 
         try:
             title_element = card.find_element(By.XPATH, ".//a[contains(@class, 'job-card-list__title')]")
-            location, work_format = card.find_element(By.CLASS_NAME, "job-card-container__metadata-item").text.split("(")
+            location_element = card.find_element(By.CLASS_NAME, "job-card-container__metadata-item").text.split("(")
+            if len(location_element) > 1:
+                location = location_element[0].strip()
+                work_format = location_element[1].rstrip(")")
+            else:
+                location = location_element[0]
+                work_format = 'N/A'
 
             return {
                 'platform': 'LinkedIn',
                 'title': title_element.find_element(By.TAG_NAME, "strong").text,
                 'company': card.find_element(By.CLASS_NAME, "job-card-container__primary-description").text,
-                'location': location.strip(),
-                'work_format': work_format.rstrip(")"),
+                'location': location,
+                'work_format': work_format,
                 'url': title_element.get_attribute('href').split('?')[0],
             }
 
@@ -253,8 +266,10 @@ class LinkedInCrawler(Login):
 
         try:
             self.logger.info(f"Navigating to page {self.current_page_number + 1}.")
-            next_page_button = self.driver.find_element(By.XPATH, f"//button[contains(@aria-label, ' {self.current_page_number + 1}')]")
-            self.driver.execute_script("arguments[0].click();", next_page_button)
+            current_page_element = self.driver.find_element(By.CSS_SELECTOR, "li.artdeco-pagination__indicator--number.active.selected")
+            next_page_element = current_page_element.find_element(By.XPATH, "following-sibling::li[1]/button")
+            self.driver.execute_script("arguments[0].scrollIntoView();", next_page_element)
+            self.driver.execute_script("arguments[0].click();", next_page_element)
             return True
         except NoSuchElementException:
             self.logger.warning("There are no more pages to navigate or the next page is not directly accessible.")

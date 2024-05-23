@@ -101,13 +101,12 @@ if __name__ == "__main__":
     env_manager.setup_environment()
 
     from scraping.linkedin import LinkedInCrawler
+
+    os.environ['SESSION_UID'] = uuid.uuid4().hex
+    crawler = LinkedInCrawler(browser="chrome", user_id=1)
     while True:
-        os.environ['SESSION_UID'] = uuid.uuid4().hex
         try:
-            crawler = LinkedInCrawler(browser="chrome", user_id=1)
-            crawler(location="Brasil")
+            crawler.search_jobs(location="Brasil")
         except Exception as e:
             print(e)
             continue
-        finally:
-            crawler.close()
